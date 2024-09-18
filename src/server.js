@@ -95,17 +95,30 @@ app.delete("/api/task/:id", async (request, response) => {
   console.log("DELETE /task received");
   try {
     const { id } = request.params;
-    const result = await db.collection("tasks").deleteOne({ id: parseInt(id) });
-
-    if (result && result.deletedCount === 1) {
+    let ids = id.split(",");
+    let results = [];
+    for (let i = 0; i < ids.length; i++) {
+      let result = await db
+        .collection("tasks")
+        .deleteOne({ id: parseInt(ids[i]) });
+      result["id"] = ids[i];
+      results.push(result);
+    }
+    const wasDeleted = (currentValue) => currentValue.deletedCount === 1;
+    if (results.every(wasDeleted)) {
       response.json({ status: "success" });
       console.log("DELETE /task response sent");
     } else {
-      if (result.deletedCount === 0) {
-        response.status(404).json({
-          message: "error deleting task",
-        });
-      }
+      let errors = results
+        .filter((currentValue) => currentValue.deletedCount === 0)
+        .map((item) => item.id);
+      response.status(400).json({
+        message: `error deleting task(s) ${
+          errors.length > 0
+            ? "with id(s) " + errors.toString().split("").join(" ")
+            : ""
+        }`,
+      });
     }
   } catch (error) {
     console.log(error);
