@@ -3,3 +3,4 @@ npm-debug.log*
 /db-data
 /db.log*
 .vercel
+.env

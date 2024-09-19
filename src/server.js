@@ -1,3 +1,4 @@
+import "./loadEnv.js";
 import express from "express";
 import { db, connectToDb } from "./db.js";
 import cors from "cors";
@@ -134,3 +135,5 @@ connectToDb(() => {
     console.log("Server is listening on port 8000");
   });
 });
+
+export default app;
