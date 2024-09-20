@@ -1,10 +1,11 @@
 import "./loadEnv.js";
-import express from "express";
-import { db, connectToDb } from "./db.js";
+import { connectToDb } from "./db.js";
 import cors from "cors";
+import express from "express";
+const PORT = process.env.PORT;
+const collection = process.env.DB_COLLECTION;
 
 const app = express();
-app.use(express.json());
 
 app.use(
   cors({
@@ -16,13 +17,8 @@ app.use(
 app.get("/api/tasks", async (request, response) => {
   console.log("GET /tasks received");
   try {
-    const cursor = await db.collection("tasks").find({});
-    let taskList = [];
-    await cursor.forEach((item) => {
-      delete item["_id"];
-      return taskList.push(item);
-    });
-
+    let { db } = await connectToDb();
+    let taskList = await db.collection(collection).find({}).toArray();
     if (taskList) {
       response.json(taskList);
       console.log("GET /tasks response sent");
@@ -43,16 +39,22 @@ app.post("/api/task", async (request, response) => {
   console.log("POST /task received");
   try {
     const { id } = request.body;
-    await db.collection("tasks").insertOne(request.body);
-    const task = await db.collection("tasks").findOne({ id: id });
-
-    if (task) {
-      delete task["_id"];
-      response.json(task);
-      console.log("POST /task response sent");
+    let { db } = await connectToDb();
+    let result = await db.collection(collection).insertOne(request.body);
+    if (result) {
+      const task = await db.collection(collection).findOne({ id: id });
+      if (task) {
+        delete task["_id"];
+        response.json(task);
+        console.log("POST /task response sent");
+      } else {
+        response.status(404).json({
+          message: "task not found",
+        });
+      }
     } else {
-      response.status(404).json({
-        message: "task not found",
+      response.status(400).json({
+        message: "error creating task",
       });
     }
   } catch (error) {
@@ -67,14 +69,14 @@ app.put("/api/task/:id", async (request, response) => {
   console.log("PUT /task received");
   try {
     const { id } = request.params;
-    await db.collection("tasks").updateOne(
+    let { db } = await connectToDb();
+    await db.collection(collection).updateOne(
       { id: parseInt(id) },
       {
         $set: request.body,
       }
     );
-    const task = await db.collection("tasks").findOne({ id: parseInt(id) });
-
+    const task = await db.collection(collection).findOne({ id: parseInt(id) });
     if (task) {
       delete task["_id"];
       response.json(task);
@@ -95,12 +97,13 @@ app.put("/api/task/:id", async (request, response) => {
 app.delete("/api/task/:id", async (request, response) => {
   console.log("DELETE /task received");
   try {
+    let { db } = await connectToDb();
     const { id } = request.params;
     let ids = id.split(",");
     let results = [];
     for (let i = 0; i < ids.length; i++) {
       let result = await db
-        .collection("tasks")
+        .collection(collection)
         .deleteOne({ id: parseInt(ids[i]) });
       result["id"] = ids[i];
       results.push(result);
@@ -129,11 +132,8 @@ app.delete("/api/task/:id", async (request, response) => {
   }
 });
 
-connectToDb(() => {
-  console.log("Successfully connected to database!");
-  app.listen(8000, () => {
-    console.log("Server is listening on port 8000");
-  });
+app.listen(PORT, () => {
+  console.log("Server is listening on port " + PORT);
 });
 
 export default app;
