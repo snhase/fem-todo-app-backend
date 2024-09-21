@@ -1,18 +1,24 @@
-import "./loadEnv.js";
-import { connectToDb } from "./db.js";
-import cors from "cors";
-import express from "express";
+const express = require("express");
+const cors = require("cors");
+require("dotenv").config();
+const connectToDb = require("./db");
+
 const PORT = process.env.PORT;
 const collection = process.env.DB_COLLECTION;
 
 const app = express();
+app.use(express.json());
 
 app.use(
   cors({
     origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   })
 );
+
+app.get("/", async (request, response) => {
+  response.json({ message: "response OK from fem-todo-backend" });
+});
 
 app.get("/api/tasks", async (request, response) => {
   console.log("GET /tasks received");
@@ -136,4 +142,4 @@ app.listen(PORT, () => {
   console.log("Server is listening on port " + PORT);
 });
 
-export default app;
+module.exports = app;

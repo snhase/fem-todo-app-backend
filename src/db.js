@@ -1,4 +1,4 @@
-import { MongoClient } from "mongodb";
+const { MongoClient } = require("mongodb");
 
 const uri = process.env.MONGODB_URI;
 const DbName = process.env.DB_NAME;
@@ -10,7 +10,7 @@ if (!process.env.MONGODB_URI) {
 let client = null;
 let db = null;
 
-export async function connectToDb() {
+async function connectToDb() {
   try {
     if (client && db) {
       return { client, db };
@@ -32,3 +32,5 @@ export async function connectToDb() {
     console.error(err);
   }
 }
+
+module.exports = connectToDb;
